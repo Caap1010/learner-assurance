@@ -1,26 +1,23 @@
+import type { ReactNode } from 'react';
+
 interface ModalProps {
-    open: boolean;
-    title: string;
-    onClose: () => void;
-    children: React.ReactNode;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
 }
 
-export function Modal({ open, title, onClose, children }: ModalProps) {
-    if (!open) {
-        return null;
-    }
-
-    return (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label={title}>
-            <div className="modal-card">
-                <header>
-                    <h3>{title}</h3>
-                    <button type="button" onClick={onClose} aria-label="Close dialog">
-                        x
-                    </button>
-                </header>
-                <div>{children}</div>
-            </div>
+export default function Modal({ title, onClose, children, footer }: ModalProps) {
+  return (
+    <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="modal-box">
+        <div className="modal-header">
+          <h2>{title}</h2>
+          <button className="modal-close" onClick={onClose} aria-label="Close">✕</button>
         </div>
-    );
+        <div className="modal-body">{children}</div>
+        {footer && <div className="modal-footer">{footer}</div>}
+      </div>
+    </div>
+  );
 }
