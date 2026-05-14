@@ -16,6 +16,8 @@ export default function CohortsDashboard() {
     updateCohortDetail,
     addLearnerToCohort,
     transferLearners: transferLearnersCtx,
+    programmeTemplates,
+    programmeAssignments,
   } = usePlatformData();
 
   // ─── Main filters ──────────────────────────────────────────────────────────
@@ -25,7 +27,7 @@ export default function CohortsDashboard() {
   // ─── Create cohort ─────────────────────────────────────────────────────────
   const [createOpen, setCreateOpen] = useState(false);
   const [automationEnabled, setAutomationEnabled] = useState(true);
-  const [selectedTemplate, setSelectedTemplate] = useState('default-learnership');
+  const [selectedTemplate, setSelectedTemplate] = useState('');
   const [name, setName] = useState('');
   const [type, setType] = useState<'learnership' | 'ydp'>('learnership');
   const [intake, setIntake] = useState('');
@@ -64,6 +66,7 @@ export default function CohortsDashboard() {
   const [editTransport, setEditTransport] = useState<'yes' | 'no'>('no');
   const [editTransportProvider, setEditTransportProvider] = useState('');
   const [editStipendAmount, setEditStipendAmount] = useState('');
+  const [editProgrammeTemplateId, setEditProgrammeTemplateId] = useState('');
   const [editTab, setEditTab] = useState<'info' | 'phases'>('info');
 
   // ─── Transfer wizard ───────────────────────────────────────────────────────
@@ -165,6 +168,29 @@ export default function CohortsDashboard() {
         };
       }),
     [cohorts, cohortDetails],
+  );
+
+  const programmeTemplateMap = useMemo(
+    () => Object.fromEntries(programmeTemplates.map((template) => [template.id, template])),
+    [programmeTemplates],
+  );
+
+  const assignmentCountByCohort = useMemo(
+    () => programmeAssignments.reduce<Record<string, number>>((acc, assignment) => {
+      acc[assignment.cohortId] = (acc[assignment.cohortId] ?? 0) + 1;
+      return acc;
+    }, {}),
+    [programmeAssignments],
+  );
+
+  const createProgrammeOptions = useMemo(
+    () => programmeTemplates.filter((template) => template.track === (type === 'learnership' ? 'Learnership' : 'YDP')),
+    [programmeTemplates, type],
+  );
+
+  const editProgrammeOptions = useMemo(
+    () => programmeTemplates.filter((template) => template.track === (editCohort?.type === 'ydp' ? 'YDP' : 'Learnership')),
+    [programmeTemplates, editCohort],
   );
 
   const totals = useMemo(() => {
@@ -277,6 +303,12 @@ export default function CohortsDashboard() {
     setEditCohortEndDate(suggestedEditEndDate);
   }, [editAutoEndDate, suggestedEditEndDate, editCohortId]);
 
+  useEffect(() => {
+    if (!createOpen) return;
+    if (createProgrammeOptions.some((template) => template.id === selectedTemplate)) return;
+    setSelectedTemplate(createProgrammeOptions[0]?.id ?? '');
+  }, [createOpen, createProgrammeOptions, selectedTemplate]);
+
   // ─── Validators ───────────────────────────────────────────────────────────
   function validateCohortInput() {
     const trimmedName = name.trim();
@@ -305,6 +337,7 @@ export default function CohortsDashboard() {
     createCohortRecord({
       name: name.trim(),
       type,
+      programmeTemplateId: selectedTemplate || undefined,
       intake: intake.trim(),
       endDate: endDate.trim(),
       employer: employer.trim(),
@@ -322,7 +355,11 @@ export default function CohortsDashboard() {
     setInstitute('');
     setLocation('');
     setSeats('60');
-    addToast('Cohort created from ' + selectedTemplate + ' template.', 'success');
+    const linkedTemplateName = programmeTemplateMap[selectedTemplate]?.name;
+    addToast(
+      linkedTemplateName ? 'Cohort created and linked to ' + linkedTemplateName + '.' : 'Cohort created without a linked programme.',
+      'success',
+    );
   }
 
   function openEditCohort(cohortId: string) {
@@ -353,6 +390,7 @@ export default function CohortsDashboard() {
     setEditTransport(safeDetail.transport);
     setEditTransportProvider(safeDetail.transportProvider);
     setEditStipendAmount(safeDetail.stipendAmount);
+    setEditProgrammeTemplateId(cohort?.programmeTemplateId ?? '');
     setEditPhases(safeDetail.phases.map((p) => ({ ...p })));
     setEditTab('info');
     setEditCohortId(cohortId);
@@ -374,7 +412,7 @@ export default function CohortsDashboard() {
     const ratio = editPhases.length > 0 ? completedCount / editPhases.length : 0;
     const health: 'on-track' | 'at-risk' | 'escalated' | 'completed' = ratio >= 1 ? 'completed' : ratio >= 0.5 ? 'on-track' : 'at-risk';
     const phase: 'onboarding' | 'active' | 'review' | 'completion' = ratio >= 1 ? 'completion' : ratio >= 0.5 ? 'active' : 'onboarding';
-    updateCohort(editCohortId, { health, phase, endDate: editCohortEndDate });
+    updateCohort(editCohortId, { health, phase, endDate: editCohortEndDate, programmeTemplateId: editProgrammeTemplateId || undefined });
     setEditCohortId(null);
     addToast('Cohort details and phase timeline saved.', 'success');
   }
@@ -566,6 +604,7 @@ export default function CohortsDashboard() {
               <thead>
                 <tr>
                   <th className="datatable-th">Cohort</th>
+                  <th className="datatable-th">Linked Programme</th>
                   <th className="datatable-th">Type</th>
                   <th className="datatable-th">Duration</th>
                   <th className="datatable-th">Intake</th>
@@ -584,6 +623,14 @@ export default function CohortsDashboard() {
                       <div style={{ display: 'grid', gap: 2 }}>
                         <strong>{c.name}</strong>
                         <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{c.location}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'grid', gap: 2 }}>
+                        <span>{programmeTemplateMap[c.programmeTemplateId ?? '']?.name ?? 'Not linked'}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          {assignmentCountByCohort[c.id] ?? 0} learner assignments
+                        </span>
                       </div>
                     </td>
                     <td><StatusBadge status={c.type === 'ydp' ? 'ydp' : 'learner'} /></td>
@@ -630,6 +677,7 @@ export default function CohortsDashboard() {
               <thead>
                 <tr>
                   <th className="datatable-th">Cohort</th>
+                  <th className="datatable-th">Linked Programme</th>
                   <th className="datatable-th">Type</th>
                   <th className="datatable-th">Duration</th>
                   <th className="datatable-th">Intake</th>
@@ -643,6 +691,14 @@ export default function CohortsDashboard() {
                 {completedCohorts.map((c) => (
                   <tr key={c.id}>
                     <td><strong>{c.name}</strong><div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>{c.location}</div></td>
+                    <td>
+                      <div style={{ display: 'grid', gap: 2 }}>
+                        <span>{programmeTemplateMap[c.programmeTemplateId ?? '']?.name ?? 'Not linked'}</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                          {assignmentCountByCohort[c.id] ?? 0} learner assignments
+                        </span>
+                      </div>
+                    </td>
                     <td><StatusBadge status={c.type === 'ydp' ? 'ydp' : 'learner'} /></td>
                     <td>{getCohortDurationLabel(c.type)}</td>
                     <td>{c.intake}</td>
@@ -699,10 +755,10 @@ export default function CohortsDashboard() {
             </label>
             <label className="form-label"><span>Template</span>
               <select className="form-input" value={selectedTemplate} onChange={(e) => setSelectedTemplate(e.target.value)}>
-                <option value="default-learnership">Default Learnership</option>
-                <option value="default-ydp">Default YDP</option>
-                <option value="high-support">High Support Intervention</option>
-                <option value="employer-accelerated">Employer Accelerated Track</option>
+                <option value="">No linked programme</option>
+                {createProgrammeOptions.map((template) => (
+                  <option key={template.id} value={template.id}>{template.name} ({template.version})</option>
+                ))}
               </select>
             </label>
             <label className="form-label"><span>Intake</span>
@@ -1002,6 +1058,14 @@ export default function CohortsDashboard() {
                   </label>
                   <label className="form-label"><span>Monthly Stipend (ZAR)</span>
                     <input className="form-input" value={editStipendAmount} onChange={(e) => setEditStipendAmount(e.target.value)} placeholder="e.g. 3500" />
+                  </label>
+                  <label className="form-label"><span>Linked Programme Template</span>
+                    <select className="form-input" value={editProgrammeTemplateId} onChange={(e) => setEditProgrammeTemplateId(e.target.value)}>
+                      <option value="">No linked programme</option>
+                      {editProgrammeOptions.map((template) => (
+                        <option key={template.id} value={template.id}>{template.name} ({template.version})</option>
+                      ))}
+                    </select>
                   </label>
                 </div>
               </fieldset>

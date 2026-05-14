@@ -1,44 +1,45 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
-import type { ReactNode } from 'react';
+import { Suspense, lazy, type ReactNode } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { PlatformDataProvider } from './context/PlatformDataContext';
 import { ToastProvider } from './context/ToastContext';
 import { ThemeProvider } from './context/ThemeContext';
+import LoadingSkeleton from './components/common/LoadingSkeleton';
 import ToastContainer from './components/common/ToastContainer';
 import AppShell from './components/layout/AppShell';
 
-import LoginPage from './pages/auth/LoginPage';
-import RecoverPasswordPage from './pages/auth/RecoverPasswordPage';
-import OwnerDashboard from './pages/owner/OwnerDashboard';
-import CohortsDashboard from './pages/owner/CohortsDashboard';
-import OwnerProgrammesPage from './pages/owner/OwnerProgrammesPage';
-import OwnerPartnersPage from './pages/owner/OwnerPartnersPage';
-import OwnerApprovalsPage from './pages/owner/OwnerApprovalsPage';
-import OwnerCompliancePage from './pages/owner/OwnerCompliancePage';
-import OwnerInterventionsPage from './pages/owner/OwnerInterventionsPage';
-import OwnerCommunicationsPage from './pages/owner/OwnerCommunicationsPage';
-import OwnerAuditLogPage from './pages/owner/OwnerAuditLogPage';
-import OwnerSettingsPage from './pages/owner/OwnerSettingsPage';
-import OwnerIntegrationsPage from './pages/owner/OwnerIntegrationsPage';
-import AdminDashboard from './pages/admin/AdminDashboard';
-import CoachDashboard from './pages/coach/CoachDashboard';
-import LearnerDashboard from './pages/learner/LearnerDashboard';
-import EmployerDashboard from './pages/employer/EmployerDashboard';
-import MentorDashboard from './pages/mentor/MentorDashboard';
-import ManagerDashboard from './pages/manager/ManagerDashboard';
-import InstituteDashboard from './pages/institute/InstituteDashboard';
-import LearnersPage from './pages/shared/LearnersPage';
-import LearnerProfile from './pages/shared/LearnerProfile';
-import AttendancePage from './pages/shared/AttendancePage';
-import CoachingPage from './pages/shared/CoachingPage';
-import ReviewsPage from './pages/shared/ReviewsPage';
-import AppraisalsPage from './pages/shared/AppraisalsPage';
-import GoalsPage from './pages/shared/GoalsPage';
-import InterventionsPage from './pages/shared/InterventionsPage';
-import EvidencePage from './pages/shared/EvidencePage';
-import ExecutiveDashboard from './pages/shared/ExecutiveDashboard';
-import ExecutiveDrilldownPage from './pages/shared/ExecutiveDrilldownPage';
-import OperationsDashboard from './pages/shared/OperationsDashboard';
+const LoginPage = lazy(() => import('./pages/auth/LoginPage'));
+const RecoverPasswordPage = lazy(() => import('./pages/auth/RecoverPasswordPage'));
+const OwnerDashboard = lazy(() => import('./pages/owner/OwnerDashboard'));
+const CohortsDashboard = lazy(() => import('./pages/owner/CohortsDashboard'));
+const OwnerProgrammesPage = lazy(() => import('./pages/owner/OwnerProgrammesPage'));
+const OwnerPartnersPage = lazy(() => import('./pages/owner/OwnerPartnersPage'));
+const OwnerApprovalsPage = lazy(() => import('./pages/owner/OwnerApprovalsPage'));
+const OwnerCompliancePage = lazy(() => import('./pages/owner/OwnerCompliancePage'));
+const OwnerInterventionsPage = lazy(() => import('./pages/owner/OwnerInterventionsPage'));
+const OwnerCommunicationsPage = lazy(() => import('./pages/owner/OwnerCommunicationsPage'));
+const OwnerAuditLogPage = lazy(() => import('./pages/owner/OwnerAuditLogPage'));
+const OwnerSettingsPage = lazy(() => import('./pages/owner/OwnerSettingsPage'));
+const OwnerIntegrationsPage = lazy(() => import('./pages/owner/OwnerIntegrationsPage'));
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const CoachDashboard = lazy(() => import('./pages/coach/CoachDashboard'));
+const LearnerDashboard = lazy(() => import('./pages/learner/LearnerDashboard'));
+const EmployerDashboard = lazy(() => import('./pages/employer/EmployerDashboard'));
+const MentorDashboard = lazy(() => import('./pages/mentor/MentorDashboard'));
+const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
+const InstituteDashboard = lazy(() => import('./pages/institute/InstituteDashboard'));
+const LearnersPage = lazy(() => import('./pages/shared/LearnersPage'));
+const LearnerProfile = lazy(() => import('./pages/shared/LearnerProfile'));
+const AttendancePage = lazy(() => import('./pages/shared/AttendancePage'));
+const CoachingPage = lazy(() => import('./pages/shared/CoachingPage'));
+const ReviewsPage = lazy(() => import('./pages/shared/ReviewsPage'));
+const AppraisalsPage = lazy(() => import('./pages/shared/AppraisalsPage'));
+const GoalsPage = lazy(() => import('./pages/shared/GoalsPage'));
+const InterventionsPage = lazy(() => import('./pages/shared/InterventionsPage'));
+const EvidencePage = lazy(() => import('./pages/shared/EvidencePage'));
+const ExecutiveDashboard = lazy(() => import('./pages/shared/ExecutiveDashboard'));
+const ExecutiveDrilldownPage = lazy(() => import('./pages/shared/ExecutiveDrilldownPage'));
+const OperationsDashboard = lazy(() => import('./pages/shared/OperationsDashboard'));
 
 function PrivateRoute({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -154,7 +155,9 @@ export default function App() {
       <AuthProvider>
         <PlatformDataProvider>
           <ToastProvider>
-            <AppRoutes />
+            <Suspense fallback={<div style={{ padding: 24 }}><LoadingSkeleton rows={6} cols={4} /></div>}>
+              <AppRoutes />
+            </Suspense>
             <ToastContainer />
           </ToastProvider>
         </PlatformDataProvider>
